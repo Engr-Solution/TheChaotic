@@ -1,3 +1,5 @@
+const { json } = require("express");
+const passport = require("passport");
 const express = require("express");
 const fs = require("fs");
 const router = express.Router();
@@ -15,57 +17,81 @@ Method  : POST
 Route   : /assist/author/create
 Access  : Private
 */
-router.post("/author/create", upload.single("profileImg"), async (req, res) => {
-  const { errors, isValid } = authorValidation(req.body);
-  if (!isValid) {
+router.post(
+  "/author/create",
+  passport.authenticate("jwt", { session: false }),
+  upload.single("profileImg"),
+  async (req, res) => {
+    const { errors, isValid } = authorValidation(req.body);
+    if (!isValid) {
+      fs.unlinkSync("uploads\\" + req.file.filename);
+      return res.json({
+        success: false,
+        errors,
+      });
+    }
+    const data = {
+      name: req.body.name,
+      desc: req.body.desc,
+      profilePhoto: {
+        contentType: req.file.mimetype,
+      },
+    };
+    data.socials = {};
+    if (req.body.instagram) data.socials.instagram = req.body.instagram;
+    if (req.body.facebook) data.socials.facebook = req.body.facebook;
+    if (req.body.github) data.socials.github = req.body.github;
+    if (req.body.linkedin) data.socials.linkedin = req.body.linkedin;
+    data.profilePhoto.data = fs.readFileSync("uploads\\" + req.file.filename);
+    const newAuthor = await new Author(data);
+    if (!newAuthor) {
+      fs.unlinkSync("uploads\\" + req.file.filename);
+      return res.json({
+        success: false,
+        message: "Internal Server Error!",
+      });
+    }
+    const savedAuthor = await newAuthor.save();
+    if (!savedAuthor) {
+      fs.unlinkSync("uploads\\" + req.file.filename);
+      return res.json({
+        success: false,
+        message: "Internal Server Error!",
+      });
+    }
     fs.unlinkSync("uploads\\" + req.file.filename);
+    res.json({
+      success: true,
+      author: savedAuthor,
+      message: "Author Creation Successful.",
+    });
+  }
+);
+
+/*
+Method  : GET
+Route   : /assist/author/all
+Access  : Public
+*/
+router.get("/author/all", async (req, res) => {
+  const authors = await Author.find({});
+
+  if (!authors) {
     return res.json({
       success: false,
-      errors,
+      message: "No Authors Found!",
     });
   }
 
-  const data = {
-    name: req.body.name,
-    desc: req.body.desc,
-    profilePhoto: {
-      contentType: req.file.mimetype,
-    },
-  };
-  if (req.body.socials.instagram)
-    data.socials.instagram = req.body.socials.instagram;
-  if (req.body.socials.facebook)
-    data.socials.facebook = req.body.socials.facebook;
-  if (req.body.socials.github) data.socials.github = req.body.socials.github;
-  if (req.body.socials.linkedin)
-    data.socials.linkedin = req.body.socials.linkedin;
-
-  data.profilePhoto.data = fs.readFileSync("uploads\\" + req.file.filename);
-
-  const newAuthor = await new Author(data);
-
-  if (!newAuthor) {
-    fs.unlinkSync("uploads\\" + req.file.filename);
-    return res.json({
-      success: false,
-      message: "Internal Server Error!",
-    });
-  }
-
-  const savedAuthor = await newAuthor.save();
-
-  if (!savedAuthor) {
-    fs.unlinkSync("uploads\\" + req.file.filename);
-    return res.json({
-      success: false,
-      message: "Internal Server Error!",
-    });
-  }
-  fs.unlinkSync("uploads\\" + req.file.filename);
-  res.json({
+  return res.json({
     success: true,
-    author: savedAuthor,
-    message: "Author Creation Successful.",
+    message: "Authors Found!",
+    authors: authors.map((item) => {
+      return {
+        id: item.id,
+        name: item.name,
+      };
+    }),
   });
 });
 
@@ -77,57 +103,59 @@ Route   : /assist/category/create
 Access  : Private
 */
 
-router.post("/category/create", async (req, res) => {
-  const { errors, isValid } = categoryValidator(req.body);
+router.post(
+  "/category/create",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    const { errors, isValid } = categoryValidator(req.body);
 
-  if (!isValid) {
+    if (!isValid) {
+      return res.json({
+        success: false,
+        errors,
+      });
+    }
+
+    //   Finding Existence
+    const exisitingCategory = await Category.findOne({
+      name: req.body.name.toLowerCase(),
+    }).exec();
+
+    if (exisitingCategory) {
+      return res.json({
+        success: false,
+        message: "Category Already Exisits",
+      });
+    }
+
+    const data = {
+      name: req.body.name.toLowerCase(),
+      desc: req.body.desc,
+    };
+
+    const newCategory = await new Category(data);
+    if (!newCategory) {
+      return res.json({
+        success: false,
+        message: "Internal Server Error!",
+      });
+    }
+    const savedCategory = await newCategory.save();
+
+    if (!savedCategory) {
+      return res.json({
+        success: false,
+        message: "Internal Server Error!",
+      });
+    }
+
     return res.json({
-      success: false,
-      errors,
+      success: true,
+      message: "Category Created!",
+      category: savedCategory,
     });
   }
-
-  //   Finding Existence
-  const exisitingCategory = await Category.findOne({
-    name: req.body.name.toLowerCase(),
-  }).exec();
-
-  if (exisitingCategory) {
-    return res.json({
-      success: false,
-      message: "Category Already Exisits",
-    });
-  }
-
-  const data = {
-    name: req.body.name.toLowerCase(),
-    desc: req.body.desc,
-  };
-
-  const newCategory = await new Category(data);
-  if (!newCategory) {
-    return res.json({
-      success: false,
-      message: "Internal Server Error!",
-    });
-  }
-  const savedCategory = await newCategory.save();
-
-  if (!savedCategory) {
-    return res.json({
-      success: false,
-      message: "Internal Server Error!",
-    });
-  }
-
-  return res.json({
-    success: true,
-    message: "Category Created!",
-    category: savedCategory,
-  });
-});
-
-// Category Routes
+);
 
 /*
 Method  : GET

@@ -16,7 +16,6 @@ body {
   font-weight: 400;
   color: rgba(0, 0, 0, 0.7);
 }
-
 a,
 a:visited,
 a:link {
@@ -31,8 +30,67 @@ a:link {
   scrollbar-width: 0;
   height: 100vh;
 }
-.main {
-  display: grid;
-  overflow-y: scroll;
-  grid-template-columns: 1fr 35%;
+
+/* 4K | Laptop L */
+
+@media screen and (max-width: 160em) and (min-width: 140em) {
+  html {
+    font-size: 110%;
+  }
+}
+@media screen and (max-width: 139.9em) and (min-width: 130em) {
+  html {
+    font-size: 105%;
+  }
+}
+@media screen and (max-width: 129.9em) and (min-width: 125em) {
+  html {
+    font-size: 100%;
+  }
+}
+@media screen and (max-width: 124.9em) and (min-width: 115em) {
+  html {
+    font-size: 90%;
+  }
+}
+@media screen and (max-width: 114.9em) and (min-width: 100em) {
+  html {
+    font-size: 80%;
+  }
+}
+@media screen and (max-width: 99.9em) and (min-width: 90em) {
+  html {
+    font-size: 70%;
+  }
+}
+
+/* Tablet | Mobile L | Mobile M | Mobile S */
+
+@media screen and (max-width: 65em) {
+  html {
+    font-size: 50%;
+  }
+}
+@media screen and (max-width: 70em) and (orientation: portrait) {
+  .home {
+    grid-template-columns: 100%;
+    grid-template-rows: max-content 1fr;
+    overflow-y: scroll;
+    height: auto;
+  }
+  html {
+    font-size: 70%;
+  }
+}
+
+@media screen and (max-width: 55em) {
+  html {
+    font-size: 50%;
+  }
+  .home {
+    grid-template-columns: 100%;
+    grid-template-rows: max-content 1fr;
+    overflow-y: scroll;
+    height: auto;
+  }
 }
